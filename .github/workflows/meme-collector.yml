@@ -40,7 +40,48 @@ jobs:
         path: meme_export.json
         retention-days: 30
 
+    - name: Upload logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: logs-${{ github.run_number }}
+        path: logs/
+        retention-days: 7
+
+    - name: Extract performance metrics
+      if: success()
+      run: |
+        if [ -f logs/memedoc.log ]; then
+          echo "## Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          grep "Session completed" logs/memedoc.log | tail -1 >> $GITHUB_STEP_SUMMARY
+          grep "Database total" logs/memedoc.log | tail -1 >> $GITHUB_STEP_SUMMARY
+
+          # Extract processing rate
+          RATE=$(grep "Overall rate" logs/memedoc.log | tail -1 | grep -o '[0-9.]\+ posts/s' || echo "N/A")
+          echo "Processing Rate: $RATE" >> $GITHUB_STEP_SUMMARY
+
+          # Check for performance warnings
+          WARNINGS=$(grep -c "Performance warning" logs/memedoc.log || echo "0")
+          echo "Performance Warnings: $WARNINGS" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Check performance degradation
+      if: success()
+      run: |
+        if [ -f logs/memedoc.log ]; then
+          # Alert if processing rate is below 1.0 posts/sec
+          RATE=$(grep "Overall rate" logs/memedoc.log | tail -1 | grep -o '[0-9.]\+' | head -1)
+          if (( $(echo "$RATE < 1.0" | bc -l) )); then
+            echo "::warning::Performance degradation detected - Rate: ${RATE} posts/s"
+          fi
+
+          # Alert if there are performance warnings
+          if grep -q "Performance warning" logs/memedoc.log; then
+            echo "::warning::Performance warnings detected - check logs"
+          fi
+        fi
+
     - name: Send notification
       if: failure()
       run: |
-        echo "::error::Meme collection failed - check logs"
+        echo "::error::Meme collection failed - check logs and artifacts"
