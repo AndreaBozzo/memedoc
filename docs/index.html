@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MemeDoc Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+            text-align: center;
+        }
+
+        .loading {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            margin: 2rem;
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th,
+        .table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .meme-title {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 2rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 MemeDoc Analytics</h1>
+        <p>Real-time meme trend analysis and insights</p>
+    </div>
+
+    <div class="container">
+        <div class="loading" id="loading">Loading dashboard data...</div>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="totalMemes">-</div>
+                <div class="stat-label">Total Memes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgScore">-</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="topScore">-</div>
+                <div class="stat-label">Top Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="uniqueTemplates">-</div>
+                <div class="stat-label">Unique Templates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="last24h">-</div>
+                <div class="stat-label">Last 24 Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lastHour">-</div>
+                <div class="stat-label">Last Hour</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid" id="chartsGrid" style="display: none;">
+            <div class="chart-container">
+                <div class="chart-title">Score Distribution</div>
+                <canvas id="scoreChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Template Popularity</div>
+                <canvas id="templateChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Daily Activity</div>
+                <canvas id="dailyChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Meme Velocity (24h)</div>
+                <canvas id="velocityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Memes Table -->
+        <div class="table-container" id="tableContainer" style="display: none;">
+            <div class="chart-title">🏆 Top Performing Memes</div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Score</th>
+                        <th>Template</th>
+                        <th>Time</th>
+                        <th>Link</th>
+                    </tr>
+                </thead>
+                <tbody id="topMemesTable">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="last-updated" id="lastUpdated"></div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://rwtjzjwmdgmdrodxpxkc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3dGp6andtZGdtZHJvZHhweGtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzNzk4NzEsImV4cCI6MjA3Mzk1NTg3MX0.xs1cP8-c-skThKv6vQv7gSbPAdQChWXhqy44Yz-4hrE';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Chart instances
+        let charts = {};
+
+        async function loadDashboardData() {
+            try {
+                // Load dashboard stats
+                const { data: stats } = await supabase
+                    .from('dashboard_stats')
+                    .select('*')
+                    .single();
+
+                if (stats) {
+                    document.getElementById('totalMemes').textContent = stats.total_memes?.toLocaleString() || '0';
+                    document.getElementById('avgScore').textContent = stats.avg_score || '0';
+                    document.getElementById('topScore').textContent = stats.top_score?.toLocaleString() || '0';
+                    document.getElementById('uniqueTemplates').textContent = stats.unique_templates || '0';
+                    document.getElementById('last24h').textContent = stats.last_24h || '0';
+                    document.getElementById('lastHour').textContent = stats.last_hour || '0';
+                }
+
+                // Load score distribution
+                const { data: scoreData } = await supabase
+                    .from('score_distribution')
+                    .select('*')
+                    .order('score_range');
+
+                if (scoreData) {
+                    createScoreChart(scoreData);
+                }
+
+                // Load template analysis
+                const { data: templateData } = await supabase
+                    .from('template_analysis')
+                    .select('*')
+                    .limit(10);
+
+                if (templateData) {
+                    createTemplateChart(templateData);
+                }
+
+                // Load daily stats
+                const { data: dailyData } = await supabase
+                    .from('daily_stats')
+                    .select('*')
+                    .order('day', { ascending: false })
+                    .limit(7);
+
+                if (dailyData) {
+                    createDailyChart(dailyData.reverse());
+                }
+
+                // Load meme velocity
+                const { data: velocityData } = await supabase
+                    .from('meme_velocity')
+                    .select('*')
+                    .order('hour', { ascending: false })
+                    .limit(24);
+
+                if (velocityData) {
+                    createVelocityChart(velocityData.reverse());
+                }
+
+                // Load top memes
+                const { data: topMemes } = await supabase
+                    .from('top_memes')
+                    .select('*')
+                    .limit(10);
+
+                if (topMemes) {
+                    createTopMemesTable(topMemes);
+                }
+
+                // Show dashboard
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('statsGrid').style.display = 'grid';
+                document.getElementById('chartsGrid').style.display = 'grid';
+                document.getElementById('tableContainer').style.display = 'block';
+                document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleString()}`;
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('loading').textContent = 'Error loading dashboard data. Please check console.';
+            }
+        }
+
+        function createScoreChart(data) {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            charts.scoreChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.score_range),
+                    datasets: [{
+                        data: data.map(d => d.count),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+                            '#9966FF', '#FF9F40', '#FF6384'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTemplateChart(data) {
+            const ctx = document.getElementById('templateChart').getContext('2d');
+            charts.templateChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.template_structure || 'Unknown'),
+                    datasets: [{
+                        label: 'Usage Count',
+                        data: data.map(d => d.usage_count),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDailyChart(data) {
+            const ctx = document.getElementById('dailyChart').getContext('2d');
+            charts.dailyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => new Date(d.day).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Total Memes',
+                        data: data.map(d => d.total_memes),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createVelocityChart(data) {
+            const ctx = document.getElementById('velocityChart').getContext('2d');
+            charts.velocityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => new Date(d.hour).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+                    datasets: [{
+                        label: 'Posts Count',
+                        data: data.map(d => d.posts_count),
+                        backgroundColor: '#764ba2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTopMemesTable(data) {
+            const tbody = document.getElementById('topMemesTable');
+            tbody.innerHTML = data.map(meme => `
+                <tr>
+                    <td class="meme-title" title="${meme.title}">${meme.title}</td>
+                    <td><strong>${meme.score.toLocaleString()}</strong></td>
+                    <td>${meme.template_structure || 'Unknown'}</td>
+                    <td>${new Date(meme.timestamp).toLocaleDateString()}</td>
+                    <td><a href="${meme.url}" target="_blank">View</a></td>
+                </tr>
+            `).join('');
+        }
+
+        // Load dashboard on page load
+        document.addEventListener('DOMContentLoaded', loadDashboardData);
+
+        // Auto-refresh every 5 minutes
+        setInterval(loadDashboardData, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
