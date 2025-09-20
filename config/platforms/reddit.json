@@ -1,0 +1,36 @@
+{
+  "platform_name": "reddit",
+  "enabled": true,
+  "rate_limit": 60,
+  "daily_limit": 10000,
+  "user_agent": "MemeDetector/2.0",
+  "supported_subreddits": [
+    "memes",
+    "dankmemes",
+    "wholesomememes",
+    "me_irl",
+    "AdviceAnimals",
+    "funny",
+    "ProgrammerHumor",
+    "PrequelMemes",
+    "lotrmemes"
+  ],
+  "default_sources": ["memes"],
+  "scraping_config": {
+    "default_limit": 100,
+    "sort_types": ["hot", "new", "top"],
+    "default_sort": "hot",
+    "time_filters": ["hour", "day", "week", "month", "year", "all"]
+  },
+  "content_filters": {
+    "min_score": 10,
+    "require_media": true,
+    "exclude_nsfw": true,
+    "max_title_length": 300
+  },
+  "retry_config": {
+    "max_retries": 3,
+    "backoff_factor": 2,
+    "timeout": 30
+  }
+}
