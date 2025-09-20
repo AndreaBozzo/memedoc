@@ -1,0 +1,46 @@
+name: Meme Data Collector
+
+on:
+  schedule:
+    # Runs every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  collect-memes:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run meme collection
+      env:
+        REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+        REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      run: |
+        python main.py
+
+    - name: Upload export data
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: meme-data-${{ github.run_number }}
+        path: meme_export.json
+        retention-days: 30
+
+    - name: Send notification
+      if: failure()
+      run: |
+        echo "::error::Meme collection failed - check logs"
