@@ -16,18 +16,34 @@ class ImageTemplateDetector:
         }
     
     def extract_features(self, image_url):
-        """Estrae multiple hash per robustezza"""
+        """Extract multiple hash for robustness (sync version)"""
         try:
             response = requests.get(image_url, timeout=10)
             image = Image.open(BytesIO(response.content)).convert('RGB')
-            
+
             features = {}
             for name, hash_func in self.hash_functions.items():
                 features[name] = str(hash_func(image))
-            
+
             # Template structure detection
             features['template_structure'] = self._detect_text_regions(image)
-            
+
+            return features
+        except Exception as e:
+            return None
+
+    def extract_features_from_bytes(self, image_bytes: bytes):
+        """Extract features from image bytes (for async processing)"""
+        try:
+            image = Image.open(BytesIO(image_bytes)).convert('RGB')
+
+            features = {}
+            for name, hash_func in self.hash_functions.items():
+                features[name] = str(hash_func(image))
+
+            # Template structure detection
+            features['template_structure'] = self._detect_text_regions(image)
+
             return features
         except Exception as e:
             return None

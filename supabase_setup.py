@@ -74,7 +74,7 @@ class SupabaseClient:
             ).limit(5).execute()
 
             # Template distribution
-            templates = self.supabase.rpc('get_template_stats').execute()
+            templates = self.supabase.rpc('get_template_stats', {}).execute()
 
             return {
                 'total_posts': total.count,
@@ -84,6 +84,39 @@ class SupabaseClient:
         except Exception as e:
             print(f"Error getting stats: {e}")
             return {'total_posts': 0, 'top_posts': [], 'templates': []}
+
+    def bulk_upsert_posts(self, posts_data: list) -> int:
+        """Bulk upsert posts using PostgreSQL UPSERT (ON CONFLICT)"""
+        if not posts_data:
+            return 0
+
+        try:
+            # Use upsert with conflict resolution
+            result = self.supabase.table('meme_posts').upsert(
+                posts_data,
+                on_conflict='platform,post_id'
+            ).execute()
+
+            return len(result.data) if result.data else 0
+
+        except Exception as e:
+            print(f"Error bulk upserting posts: {e}")
+            # Fallback to individual inserts if bulk fails
+            success_count = 0
+            for post_data in posts_data:
+                try:
+                    existing = self.supabase.table('meme_posts').select('id').eq(
+                        'platform', post_data['platform']
+                    ).eq('post_id', post_data['post_id']).execute()
+
+                    if not existing.data:
+                        result = self.supabase.table('meme_posts').insert(post_data).execute()
+                        if result.data:
+                            success_count += 1
+                except Exception:
+                    continue
+
+            return success_count
 
     def export_data(self):
         """Export all data to JSON"""
