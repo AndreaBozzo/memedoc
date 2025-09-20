@@ -1,6 +1,6 @@
 # MemeDoc - Automated Meme Data Collection
 
-🤖 Automated system for collecting and analyzing meme trends across platforms using computer vision and natural language processing.
+Automated system for collecting and analyzing meme trends across platforms using computer vision and natural language processing.
 
 ## Features
 
@@ -62,6 +62,4 @@ Each meme post includes:
 - **Monitoring**: Automatic failure notifications
 - **Data Export**: JSON artifacts downloadable from Actions runs
 
----
-
-🤖 *Generated with [Claude Code](https://claude.ai/code)*
+--
