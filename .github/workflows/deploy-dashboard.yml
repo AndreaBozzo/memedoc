@@ -2,8 +2,8 @@ name: Deploy Dashboard to GitHub Pages
 
 on:
   schedule:
-    # Deploy updated dashboard every hour
-    - cron: '0 * * * *'
+    # Deploy updated dashboard every 6 hours
+    - cron: 0 */6 * * *
   workflow_dispatch: # Allow manual trigger
   push:
     branches: [ main ]
