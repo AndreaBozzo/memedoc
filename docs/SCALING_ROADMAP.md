@@ -26,6 +26,13 @@
 - Configuration validation
 - **Benefit: Zero overhead config loading**
 
+### 📊 **Dashboard Enhancement**
+- `docs/index.html` - Subreddit Performance Matrix
+- Interactive heatmap with 110+ subreddit coverage
+- Category filters (Gaming, Anime, Programming, etc.)
+- Multiple metrics (avg_score, velocity, growth_rate)
+- **Benefit: Comprehensive performance insights**
+
 ## 🎯 NEXT PRIORITY ITEMS
 
 ### 1. **Rate Limiting & Backpressure** (HIGH)
