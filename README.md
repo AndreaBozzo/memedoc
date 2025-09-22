@@ -4,7 +4,7 @@ Automated system for collecting and analyzing meme trends across platforms using
 
 ## Features
 
-- **Automated Reddit Collection**: Scrapes 9 subs every 2 hours via GitHub Actions
+- **Automated Reddit Collection**: Scrapes 110+ meme subreddits every 6 hours via GitHub Actions
 - **Async Processing Pipeline**: Parallel image processing with 10x performance boost
 - **Image Analysis**: Computer vision with OpenCV for template detection and similarity matching
 - **Duplicate Detection**: Prevents re-inserting same memes across collection runs
@@ -67,7 +67,7 @@ Each meme post includes:
 
 ## Automation
 
-- **Frequency**: Every 2 hours via GitHub Actions
+- **Frequency**: Every 6 hours via GitHub Actions
 - **Cost**: 100% free (GitHub Actions + Supabase free tiers)
 - **Monitoring**: Structured logging with performance metrics
 - **Data Export**: JSON artifacts downloadable from Actions runs
