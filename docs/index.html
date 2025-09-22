@@ -147,6 +147,91 @@
             margin-top: 2rem;
             font-style: italic;
         }
+
+        .matrix-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .matrix-controls label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .matrix-controls select {
+            margin-left: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .matrix-container {
+            display: grid;
+            gap: 2px;
+            margin-top: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .matrix-row {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 2px;
+            align-items: center;
+        }
+
+        .matrix-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            text-align: right;
+        }
+
+        .matrix-cell {
+            padding: 0.5rem;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .matrix-cell:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .matrix-cell::after {
+            content: attr(data-value);
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .matrix-cell:hover::after {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -207,6 +292,33 @@
                 <div class="chart-title">Meme Velocity (24h)</div>
                 <canvas id="velocityChart"></canvas>
             </div>
+
+            <div class="chart-container" style="grid-column: 1 / -1;">
+                <div class="chart-title">Subreddit Performance Matrix</div>
+                <div class="matrix-controls">
+                    <label>Category Filter:
+                        <select id="categoryFilter">
+                            <option value="all">All Subreddits</option>
+                            <option value="meme">Classic Memes</option>
+                            <option value="gaming">Gaming</option>
+                            <option value="anime">Anime</option>
+                            <option value="programming">Programming</option>
+                            <option value="history">History</option>
+                            <option value="reaction">Reaction/Format</option>
+                            <option value="generational">Generational</option>
+                        </select>
+                    </label>
+                    <label>Metric:
+                        <select id="metricSelect">
+                            <option value="avg_score">Average Score</option>
+                            <option value="velocity">24h Velocity</option>
+                            <option value="total_posts">Total Posts</option>
+                            <option value="growth_rate">Growth Rate</option>
+                        </select>
+                    </label>
+                </div>
+                <div id="subredditMatrix" class="matrix-container"></div>
+            </div>
         </div>
 
         <!-- Top Memes Table -->
@@ -239,6 +351,18 @@
 
         // Chart instances
         let charts = {};
+        let subredditData = [];
+
+        // Subreddit categorization
+        const subredditCategories = {
+            meme: ['memes', 'dankmemes', 'wholesomememes', 'me_irl', 'meirl', 'AdviceAnimals', 'memeeconomy', 'DeepFriedMemes', 'surrealmemes', 'antimeme'],
+            gaming: ['MinecraftMemes', 'leagueofmemes', 'pcmasterrace', 'gamingcirclejerk', 'consolemasterrace'],
+            anime: ['animemes', 'animememes', 'goodanimemes', 'shitpostcrusaders'],
+            programming: ['ProgrammerHumor', 'linuxmemes', 'linuxmasterrace', 'softwaregore'],
+            history: ['HistoryMemes', 'PrequelMemes', 'lotrmemes', 'crusadememes', 'trebuchetmemes'],
+            reaction: ['bonehurtingjuice', 'comedyheaven', 'cursedimages', 'blursedimages', 'starterpacks', 'perfectlycutscreams'],
+            generational: ['teenagers', 'GenZMemes', 'millenialmemes', 'okboomer', '2meirl4meirl', 'absolutelynotmeirl']
+        };
 
         async function loadDashboardData() {
             try {
@@ -308,6 +432,9 @@
                 if (topMemes) {
                     createTopMemesTable(topMemes);
                 }
+
+                // Load subreddit performance data
+                await loadSubredditMatrix();
 
                 // Show dashboard
                 document.getElementById('loading').style.display = 'none';
@@ -446,8 +573,84 @@
             `).join('');
         }
 
+        async function loadSubredditMatrix() {
+            try {
+                // Simulate subreddit performance data (in production, this would come from Supabase)
+                const subreddits = [
+                    'memes', 'dankmemes', 'wholesomememes', 'me_irl', 'AdviceAnimals',
+                    'ProgrammerHumor', 'PrequelMemes', 'lotrmemes', 'animemes', 'MinecraftMemes',
+                    'HistoryMemes', 'physicsmemes', 'bonehurtingjuice', 'teenagers', 'GenZMemes',
+                    'cursedimages', 'blursedimages', 'starterpacks', 'pcmasterrace', 'linuxmemes'
+                ];
+
+                subredditData = subreddits.map(sub => ({
+                    name: sub,
+                    avg_score: Math.floor(Math.random() * 500) + 50,
+                    velocity: Math.floor(Math.random() * 100) + 10,
+                    total_posts: Math.floor(Math.random() * 1000) + 100,
+                    growth_rate: (Math.random() * 40 - 20).toFixed(1) // -20% to +20%
+                }));
+
+                renderSubredditMatrix();
+            } catch (error) {
+                console.error('Error loading subreddit matrix:', error);
+            }
+        }
+
+        function renderSubredditMatrix() {
+            const category = document.getElementById('categoryFilter').value;
+            const metric = document.getElementById('metricSelect').value;
+
+            let filteredData = subredditData;
+
+            if (category !== 'all') {
+                const categorySubreddits = subredditCategories[category] || [];
+                filteredData = subredditData.filter(sub => categorySubreddits.includes(sub.name));
+            }
+
+            // Sort by metric
+            filteredData.sort((a, b) => parseFloat(b[metric]) - parseFloat(a[metric]));
+
+            const container = document.getElementById('subredditMatrix');
+            container.innerHTML = '';
+
+            // Get min/max for color scaling
+            const values = filteredData.map(sub => parseFloat(sub[metric]));
+            const minVal = Math.min(...values);
+            const maxVal = Math.max(...values);
+
+            filteredData.forEach(sub => {
+                const row = document.createElement('div');
+                row.className = 'matrix-row';
+
+                const label = document.createElement('div');
+                label.className = 'matrix-label';
+                label.textContent = `r/${sub.name}`;
+
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.textContent = sub[metric];
+                cell.setAttribute('data-value', `${metric}: ${sub[metric]}`);
+
+                // Color based on value (green = high, red = low)
+                const intensity = (parseFloat(sub[metric]) - minVal) / (maxVal - minVal);
+                const hue = intensity * 120; // 0 = red, 120 = green
+                cell.style.backgroundColor = `hsl(${hue}, 70%, 45%)`;
+
+                row.appendChild(label);
+                row.appendChild(cell);
+                container.appendChild(row);
+            });
+        }
+
         // Load dashboard on page load
-        document.addEventListener('DOMContentLoaded', loadDashboardData);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+
+            // Add event listeners for matrix controls
+            document.getElementById('categoryFilter').addEventListener('change', renderSubredditMatrix);
+            document.getElementById('metricSelect').addEventListener('change', renderSubredditMatrix);
+        });
 
         // Auto-refresh every 5 minutes
         setInterval(loadDashboardData, 5 * 60 * 1000);
